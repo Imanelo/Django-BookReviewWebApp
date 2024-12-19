@@ -1,0 +1,35 @@
+{% extends 'base.html' %} 
+{% block content %}
+  <form action="">
+    <div class="mb-3">
+      <label class="form-label">Search for Book:</label>
+      <input type="text" name="searchBook" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary">
+      Search
+    </button>
+  </form>
+  <p>Searching for: {{ searchTerm }}</p>
+  <div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for book in books %}
+    <div class="col">
+      <div class="card">
+        <div class="d-flex justify-content-center align-items-center">
+          <img class="card-img-top mt-3" src="{{ book.image.url }}" style="width: 200px; height: auto;" />
+        </div>
+        <div class="card-body">
+          <a href="{% url 'detail' book.id %}">
+            <h5 class="card-title fw-bold">{{ book.title }}</h5>
+          </a>
+          <p class="card-text">{{ book.description }}</p>
+          {% if book.url %}
+          <a href="{{ book.url }}" class="btn btn-primary">
+            Book Link
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% endblock content %} 
