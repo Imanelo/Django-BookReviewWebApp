@@ -1,0 +1,52 @@
+name: Push Docker Image to ECR
+
+on:
+  push:
+    branches:
+      - main  # Adjust to the branch you want to trigger this workflow
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Configure AWS Credentials using OIDC
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Step 3: Log in to Amazon ECR
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      # Step 4: Build, tag, and push Docker image
+      - name: Build, tag, and push Docker image
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          REPO_NAME: ${{ secrets.ECR_REPOSITORY_NAME }}
+        run: |
+          # Extract GitHub metadata
+          COMMIT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME}"
+
+          # Tagging strategy: version + commit SHA 
+          VERSION_TAG="v1.0.0"  # Replace with your release version
+          UNIQUE_TAG="${VERSION_TAG}-${COMMIT_SHA}"
+
+          # Build Docker image
+          docker build -t "${IMAGE_URI}:${UNIQUE_TAG}" .
+
+          # Push the uniquely tagged image
+          docker push "${IMAGE_URI}:${UNIQUE_TAG}"
